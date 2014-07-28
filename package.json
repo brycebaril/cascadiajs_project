@@ -1,0 +1,31 @@
+{
+  "name": "cascadia_project",
+  "version": "0.0.0",
+  "description": "Put A Database On It! ===",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Bryce B. Baril",
+  "jshintConfig": {
+    "asi": true,
+    "globalstrict": true,
+    "validthis": true,
+    "eqnull": true,
+    "node": true,
+    "loopfunc": true,
+    "newcap": false,
+    "eqeqeq": false
+  },
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/brycebaril/cascadiajs_project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brycebaril/cascadiajs_project/issues"
+  },
+  "homepage": "https://github.com/brycebaril/cascadiajs_project"
+}
