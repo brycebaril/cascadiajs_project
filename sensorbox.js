@@ -2,13 +2,14 @@
 
 var Gpio = require("onoff").Gpio
 var AnalogIn = require("analogin")
-var level = require("level-hyperlevel")
-var timestreadmdb = require("timestreamdb")
+var level = require("level-hyper")
+var TsDB = require("timestreamdb")
 
 var COLLECTION_INTERVAL = 50
 
 // Set up db
-var db
+var orig = level("./db", {valueEncoding: "json"})
+var db = TsDB(orig)
 
 // Set up replication switch
 var redState
@@ -19,11 +20,21 @@ var redSwitch = new Gpio("45", "in", "both")
 redSwitch.watch(function (err, value) {
   if (value) {
     console.log("red switch is true")
+    startReplication()
   }
   else {
     console.log("red switch is false")
+    stopReplication()
   }
 })
+
+function startReplication() {
+  console.log("Starting replication")
+}
+
+function stopReplication() {
+  console.log("Stopping replication")
+}
 
 // Set up data switches (incrementers)
 var yellowPresses = 0
@@ -65,7 +76,7 @@ function collect() {
   }
   yellowPresses = 0
   greenPresses = 0
-  db.set("cjs", record)
+  db.put("cjs", record)
 }
 
 setInterval(collect, COLLECTION_INTERVAL)
