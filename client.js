@@ -1,16 +1,26 @@
-// instntiate graphs w/ different query functions
-
-
 var TsDB = require("timestreamdb")
 var level = require("level-js")
+var terminus = require("terminus")
+var multibuffer = require("multibuffer")
 
 var orig = level("foo", {valueEncoding: "json"})
 var db = TsDB(orig)
 
 var shoe = require("shoe")
 
+// timestreamdb broken in the browser? just pretend for now?
 var upstream = shoe("/replicate")
-upstream.pipe(orig.createWriteStream())
+upstream.pipe(terminus.tail(function (mb) {
+  var parts = multibuffer.unpack(mb)
+  var version = parseInt(parts[0].toString())
+  var record = JSON.parse(parts[1].toString())
+  console.log(record)
+  db.put("cjs", record, {version: version}, function (err) {
+    if (err) {
+      console.log(err)
+    }
+  })
+}))
 
 var d1 = [];
 for (var i = 0; i < 14; i += 0.5) {

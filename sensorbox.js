@@ -6,6 +6,7 @@ var level = require("level-hyper")
 var TsDB = require("timestreamdb")
 var timestream = require("timestream")
 var IntervalStream = require("./interval_stream")
+var multibuffer = require("multibuffer")
 
 var http = require("http")
 var ecstatic = require("ecstatic")
@@ -17,8 +18,9 @@ var server = http.createServer(
 
 console.log("HTTP Listening on :8080")
 
+var downstream
 var sock = shoe(function (stream) {
-  db.createStream({tail: true}).pipe(stream)
+  downstream = stream
 })
 sock.install(server, "/replicate")
 
@@ -111,5 +113,8 @@ var ts = timestream(readstream)
   .flatten()
   .mean(1000)
   .tail(function (record) {
-    db.put("cjs", record, {version: record._ts})
+    db.put("cjs", record, {version: record._t})
+    if (redState && downstream) {
+      downstream.write(multibuffer.pack([Buffer(record._t.toString()), Buffer(JSON.stringify(record))]))
+    }
   })
