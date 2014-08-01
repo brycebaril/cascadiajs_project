@@ -4,6 +4,8 @@ var Gpio = require("onoff").Gpio
 var AnalogIn = require("analogin")
 var level = require("level-hyper")
 var TsDB = require("timestreamdb")
+var timestream = require("timestream")
+var IntervalStream = require("./interval_stream")
 
 var COLLECTION_INTERVAL = 50
 
@@ -12,20 +14,25 @@ var orig = level("./db", {valueEncoding: "json"})
 var db = TsDB(orig)
 
 // Set up replication switch
-var redState
-
 var redLed = new Gpio("44", "out")
+function lightRed(val) {
+  redLed.writeSync(val)
+}
 var redSwitch = new Gpio("45", "in", "both")
+
+var redState = redSwitch.readSync()
+lightRed(redState)
 
 redSwitch.watch(function (err, value) {
   if (value) {
-    console.log("red switch is true")
+    redState = 1
     startReplication()
   }
   else {
-    console.log("red switch is false")
+    redState = 0
     stopReplication()
   }
+  lightRed(redState)
 })
 
 function startReplication() {
@@ -42,6 +49,7 @@ var greenPresses = 0
 
 // yellow is always on
 var yellowLed = new Gpio("26", "out")
+yellowLed.writeSync(1)
 var yellowBtn = new Gpio("23", "in", "rising")
 
 yellowBtn.watch(function (err, val) {
@@ -50,6 +58,7 @@ yellowBtn.watch(function (err, val) {
 
 // green is always on
 var greenLed = new Gpio("46", "out")
+greenLed.writeSync(1)
 var greenBtn = new Gpio("47", "in", "rising")
 greenBtn.watch(function (err, value) {
   greenPresses++
@@ -64,6 +73,7 @@ var z = AnalogIn(6)
 
 function collect() {
   var record = {
+    _t: Date.now(),
     yellow: yellowPresses,
     green: greenPresses,
     red: redState,
@@ -72,11 +82,14 @@ function collect() {
       x: x.readSync(),
       y: y.readSync(),
       z: z.readSync()
-    }
   }
   yellowPresses = 0
   greenPresses = 0
-  db.put("cjs", record)
+  // db.put("cjs", record)
+  // //console.log(record)
+  return record
 }
 
-setInterval(collect, COLLECTION_INTERVAL)
+var readstream = new IntervalStream({objectMode: true}, collect, COLLECTION_INTERVAL)
+var ts = timestream(readstream)
+ts.tail(console.log)
