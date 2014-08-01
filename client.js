@@ -1,13 +1,16 @@
 // instntiate graphs w/ different query functions
 
 
+var TsDB = require("timestreamdb")
+var level = require("level-js")
 
-var terminus = require("terminus")
+var orig = level("foo", {valueEncoding: "json"})
+var db = TsDB(orig)
 
-var Graph = terminus.ctor({objectMode: true}, function (record, encoding, callback) {
-  // draw record
-  callback()
-})
+var shoe = require("shoe")
+
+var upstream = shoe("/replicate")
+upstream.pipe(orig.createWriteStream())
 
 var d1 = [];
 for (var i = 0; i < 14; i += 0.5) {

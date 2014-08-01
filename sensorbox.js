@@ -7,6 +7,21 @@ var TsDB = require("timestreamdb")
 var timestream = require("timestream")
 var IntervalStream = require("./interval_stream")
 
+var http = require("http")
+var ecstatic = require("ecstatic")
+var shoe = require("shoe")
+
+var server = http.createServer(
+  ecstatic({ root: __dirname + "/site" })
+).listen(8080)
+
+console.log("HTTP Listening on :8080")
+
+var sock = shoe(function (stream) {
+  db.createStream({tail: true}).pipe(stream)
+})
+sock.install(server, "/replicate")
+
 var COLLECTION_INTERVAL = 50
 
 // Set up db
@@ -82,6 +97,7 @@ function collect() {
       x: x.readSync(),
       y: y.readSync(),
       z: z.readSync()
+    }
   }
   yellowPresses = 0
   greenPresses = 0
@@ -92,4 +108,8 @@ function collect() {
 
 var readstream = new IntervalStream({objectMode: true}, collect, COLLECTION_INTERVAL)
 var ts = timestream(readstream)
-ts.tail(console.log)
+  .flatten()
+  .mean(1000)
+  .tail(function (record) {
+    db.put("cjs", record, {version: record._ts})
+  })
